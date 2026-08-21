@@ -74,6 +74,23 @@ jobs:
           echo "--- md5 at run time, legacy image ---"
           docker run --rm doc-verify-legacy md5sum /usr/local/lib/python3.12/site-packages/scipy/_lib/_ccallback_c.cpython-312-x86_64-linux-gnu.so
 
+      # File is byte-identical build vs run, and legacy builder fails too.
+      # Only remaining variable: IMPORT ORDER. The build-time check imports
+      # scipy before paddle; "import paddleocr" loads paddle first.
+      - name: Import-order probe
+        if: always()
+        run: |
+          echo "--- 1. import paddleocr (paddle loads first) ---"
+          docker run --rm doc-verify python -c "import paddleocr; print('1 OK')" 2>&1 | tail -1
+          echo "--- 2. import scipy FIRST, then paddleocr ---"
+          docker run --rm doc-verify python -c "import scipy._lib._ccallback; import paddleocr; print('2 OK')" 2>&1 | tail -1
+          echo "--- 3. import paddle FIRST, then scipy ---"
+          docker run --rm doc-verify python -c "import paddle; import scipy._lib._ccallback; print('3 OK')" 2>&1 | tail -1
+          echo "--- 4. scipy alone ---"
+          docker run --rm doc-verify python -c "import scipy._lib._ccallback; print('4 OK')" 2>&1 | tail -1
+          echo "--- 5. skimage first, then paddleocr ---"
+          docker run --rm doc-verify python -c "import skimage.morphology; import paddleocr; print('5 OK')" 2>&1 | tail -1
+
       - name: File integrity and runtime facts
         if: always()
         run: |
