@@ -48,6 +48,20 @@ jobs:
         run: |
           docker run --rm doc-verify sh -c 'p=0; f=0; for i in 1 2 3 4 5 6 7 8 9 10; do if python -c "import paddleocr" >/tmp/o 2>&1; then p=$((p+1)); else f=$((f+1)); tail -1 /tmp/o; fi; done; echo "RESULT one-container: $p passed / $f failed of 10"'
 
+      # Build-time check (before COPY . .) passes; runtime (after) fails.
+      # Only difference is /app contents + cwd on sys.path. Isolate that.
+      - name: sys.path isolation probe
+        if: always()
+        run: |
+          echo "--- A. default: cwd=/app on sys.path ---"
+          docker run --rm doc-verify python -c "import paddleocr; print('A OK')" 2>&1 | tail -2
+          echo "--- B. -P : do NOT prepend cwd to sys.path ---"
+          docker run --rm doc-verify python -P -c "import paddleocr; print('B OK')" 2>&1 | tail -2
+          echo "--- C. workdir=/ instead of /app ---"
+          docker run --rm -w / doc-verify python -c "import paddleocr; print('C OK')" 2>&1 | tail -2
+          echo "--- D. what is in /app that could shadow a module? ---"
+          docker run --rm doc-verify sh -c 'ls -a /app; echo "--- sys.path:"; python -c "import sys; print(sys.path)"'
+
       - name: File integrity and runtime facts
         if: always()
         run: |
