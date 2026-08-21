@@ -19,8 +19,7 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -r requirements.txt && \
-    pip install --no-cache-dir --force-reinstall pyclipper
+    pip install --no-cache-dir --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -r requirements.txt
 
 # Stage 2: Runtime stage
 FROM python:3.12-bookworm
