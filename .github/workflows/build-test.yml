@@ -62,6 +62,18 @@ jobs:
           echo "--- D. what is in /app that could shadow a module? ---"
           docker run --rm doc-verify sh -c 'ls -a /app; echo "--- sys.path:"; python -c "import sys; print(sys.path)"'
 
+      # BuildKit exports layers through a compress/extract cycle; the legacy
+      # builder commits containers directly. If legacy works, the corruption is
+      # in BuildKit's export path, not in the packages.
+      - name: Rebuild with legacy (non-BuildKit) builder
+        if: always()
+        run: |
+          DOCKER_BUILDKIT=0 docker build -t doc-verify-legacy . 2>&1 | tail -20
+          echo "--- import test against legacy-built image ---"
+          docker run --rm doc-verify-legacy python -c "import paddleocr; print('LEGACY BUILD: paddleocr import OK')" 2>&1 | tail -3
+          echo "--- md5 at run time, legacy image ---"
+          docker run --rm doc-verify-legacy md5sum /usr/local/lib/python3.12/site-packages/scipy/_lib/_ccallback_c.cpython-312-x86_64-linux-gnu.so
+
       - name: File integrity and runtime facts
         if: always()
         run: |

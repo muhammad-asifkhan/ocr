@@ -36,26 +36,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN pip uninstall -y opencv-python opencv-contrib-python && \
     pip install --no-cache-dir --force-reinstall --no-deps opencv-python-headless==4.6.0.66
 
-# Fail the BUILD if any compiled extension is corrupt, rather than discovering
-# it at container run time. This also tells us whether corruption exists at
-# install time or is introduced later by the image layer export.
-RUN python - <<'PY'
-import sys
-mods = ["numpy", "zlib", "cv2", "scipy", "scipy._lib._ccallback", "pyclipper",
-        "skimage.morphology", "paddle", "paddleocr", "llama_cpp"]
-failed = []
-for m in mods:
-    try:
-        __import__(m)
-        print(f"OK   {m}")
-    except Exception as e:
-        print(f"FAIL {m}: {type(e).__name__}: {e}")
-        failed.append(m)
-if failed:
-    print("BUILD-TIME IMPORT FAILURES:", failed)
-    sys.exit(1)
-print("all imports OK at build time")
-PY
+# Fail the BUILD if any compiled extension is corrupt, and record checksums so
+# build-time bytes can be compared against run-time bytes. Written as a single
+# -c invocation (no heredoc) so the same Dockerfile works under the legacy
+# builder as well as BuildKit.
+RUN md5sum /usr/local/lib/python3.12/site-packages/scipy/_lib/_ccallback_c*.so /usr/local/lib/python3.12/site-packages/pyclipper/_pyclipper*.so && python -c "[__import__(m) for m in ['numpy','zlib','cv2','scipy','scipy._lib._ccallback','pyclipper','skimage.morphology','paddle','paddleocr','llama_cpp']]; print('BUILD-TIME imports OK')"
 
 COPY . .
 
