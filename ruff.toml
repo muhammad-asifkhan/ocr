@@ -1,0 +1,13 @@
+[lint]
+# These are class-level constants, not mutable defaults that would be shared across instances
+# Suppressing RUF012 for config classes where these are intentional class constants
+ignore = [
+    "RUF012",  # Mutable class attributes in config - these are intentional constants
+    "BLE001",  # Broad exception catching - intentional for this use case
+    "SIM102", # Nested if statements - intentional for clarity
+    "SIM103", # Return negated condition - minor style preference
+    "DTZ007", # Naive datetime - dates are not timezone-sensitive in this context
+]
+
+[lint.per-file-ignores]
+"api/main.py" = ["B008"]

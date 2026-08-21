@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv313/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/*.log
+*.log
+
+# Data - keep reference_db.csv but exclude any user data
+data/reviews.json
+data/*.json
+
+# Models - these are large and should be downloaded separately
+*.gguf
+models/*.gguf
+models/*.onnx
+
+# Environment
+.env
+.env.local
+
+# Tests
+tests/__pycache__/
+tests/.pytest_cache/
+.coverage
+
+# Development scripts
+agentic_extractor.py
+download_model.py
+
+# Git
+.git/
+
+# OS
+.DS_Store
+Thumbs.db

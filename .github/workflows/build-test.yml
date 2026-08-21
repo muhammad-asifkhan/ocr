@@ -1,0 +1,42 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Build Docker image
+        run: docker build -t doc-verify .
+      
+      - name: Verify PaddleOCR import
+        run: |
+          docker run --rm doc-verify python -c "from paddleocr import PaddleOCR; print('PaddleOCR import successful')"
+      
+      - name: Run unit tests (mocked PaddleOCR)
+        run: docker run --rm doc-verify pytest tests/unit/ -v
+      
+      - name: Run integration tests (real PaddleOCR)
+        run: docker run --rm doc-verify pytest tests/integration/ -v
+      
+      - name: Check code quality
+        run: docker run --rm doc-verify ruff check .
+      
+      - name: Start container and verify health endpoint
+        run: |
+          docker run -d --name test-container -p 8000:8000 \
+            -e API_KEY=test-key-123 \
+            -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
+            doc-verify
+          sleep 10
+          docker exec test-container curl -f http://localhost:8000/health || exit 1
+          docker stop test-container
