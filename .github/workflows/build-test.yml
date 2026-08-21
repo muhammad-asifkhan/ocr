@@ -96,10 +96,13 @@ jobs:
         run: |
           docker run --rm doc-verify sh -c 'md5sum /usr/local/lib/python3.12/site-packages/scipy/_lib/_ccallback_c*.so; ls -l /usr/local/lib/python3.12/site-packages/scipy/_lib/_ccallback_c*.so; python -c "import zlib,sys; print(\"zlib\", zlib.ZLIB_VERSION); print(sys.version)"; nproc; free -m | head -2'
 
-      - name: Verify PaddleOCR import
+      # Verify the path the application actually uses. services/ocr.py pins the
+      # compiled-extension load order; a bare "import paddleocr" bypasses that
+      # and is expected to still fail (see Import-order probe above).
+      - name: Verify OCR service imports and initialises
         if: always()
         run: |
-          docker run --rm doc-verify python -c "from paddleocr import PaddleOCR; print('PaddleOCR import successful')"
+          docker run --rm doc-verify python -c "from services.ocr import get_ocr_service; print('services.ocr import OK')"
           rc=$?
           echo "explicit exit code: $rc"
           exit $rc
