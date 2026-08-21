@@ -3,7 +3,7 @@ Unit tests for Domicile extraction service.
 """
 
 import pytest
-from services.extract_domicile import DomicileExtractor, ExtractedField
+from services.extract_domicile import DomicileExtractor
 from services.ocr import OCRResult
 
 

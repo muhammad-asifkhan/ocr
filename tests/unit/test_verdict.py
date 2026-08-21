@@ -3,7 +3,7 @@ Unit tests for verdict service.
 """
 
 import pytest
-from services.verdict import VerdictService, VerdictEvidence
+from services.verdict import VerdictService
 from services.extract_cnic import ExtractedField
 from services.crossref import MatchResult
 from config import VerdictConfig

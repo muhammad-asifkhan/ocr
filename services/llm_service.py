@@ -30,7 +30,23 @@ class LLMService:
             self._initialize_llm()
     
     def _initialize_llm(self):
-        """Initialize Llama.cpp engine."""
+        """
+        Initialize Llama.cpp engine.
+
+        The LLM is an OPTIONAL fallback used only for transcripts whose layout
+        defeats anchor-based extraction. It must never take the whole API down:
+        if the model is missing or fails to load we log it and leave the engine
+        unset, so is_available() returns False and transcript extraction
+        degrades to anchor-only rather than the service failing to start.
+        """
+        if not LLMConfig.MODEL_PATH.exists():
+            logger.error(
+                f"LLM model not found at {LLMConfig.MODEL_PATH}. "
+                "Transcript extraction will run anchor-only with no LLM fallback."
+            )
+            self._llm_engine = None
+            return
+
         try:
             self._llm_engine = Llama(
                 model_path=str(LLMConfig.MODEL_PATH),
@@ -40,8 +56,11 @@ class LLMService:
             )
             logger.info("LLM initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize LLM: {e!s}")
-            raise RuntimeError(f"LLM initialization failed: {e!s}")
+            logger.error(
+                f"Failed to initialize LLM: {e!s}. "
+                "Transcript extraction will run anchor-only with no LLM fallback."
+            )
+            self._llm_engine = None
     
     def extract_transcript_fields(self, raw_text: str) -> dict | None:
         """

@@ -3,7 +3,7 @@ Unit tests for Transcript extraction service.
 """
 
 import pytest
-from services.extract_transcript import TranscriptExtractor, ExtractedField
+from services.extract_transcript import TranscriptExtractor
 from services.ocr import OCRResult
 
 

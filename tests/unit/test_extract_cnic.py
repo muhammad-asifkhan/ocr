@@ -3,7 +3,7 @@ Unit tests for CNIC extraction service.
 """
 
 import pytest
-from services.extract_cnic import CNICExtractor, ExtractedField
+from services.extract_cnic import CNICExtractor
 from services.ocr import OCRResult
 
 

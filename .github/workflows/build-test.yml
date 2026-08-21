@@ -10,33 +10,59 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Build Docker image
-        run: docker build -t doc-verify .
-      
+        run: |
+          docker build -t doc-verify .
+          echo "BUILD_EXIT=$?"
+
+      # Diagnostics run even when a later step fails, so one run yields the full
+      # picture instead of one fact per round trip.
+      - name: Dependency inventory
+        if: always()
+        run: |
+          docker run --rm doc-verify python -m pip list 2>/dev/null \
+            | grep -iE "opencv|scipy|scikit|numpy|paddle|pyclipper|llama|setuptools" || true
+
       - name: Verify PaddleOCR import
+        if: always()
         run: |
           docker run --rm doc-verify python -c "from paddleocr import PaddleOCR; print('PaddleOCR import successful')"
-      
+          rc=$?
+          echo "explicit exit code: $rc"
+          exit $rc
+
       - name: Run unit tests (mocked PaddleOCR)
+        if: always()
         run: docker run --rm doc-verify pytest tests/unit/ -v
-      
-      - name: Run integration tests (real PaddleOCR)
-        run: docker run --rm doc-verify pytest tests/integration/ -v
-      
+
+      - name: Run integration tests
+        if: always()
+        run: docker run --rm doc-verify pytest tests/integration/ -v -rs
+
       - name: Check code quality
+        if: always()
         run: docker run --rm doc-verify ruff check .
-      
+
       - name: Start container and verify health endpoint
+        if: always()
         run: |
           docker run -d --name test-container -p 8000:8000 \
             -e API_KEY=test-key-123 \
             -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
             doc-verify
-          sleep 10
-          docker exec test-container curl -f http://localhost:8000/health || exit 1
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then
+              echo "health OK after ${i}s"; curl -sS http://localhost:8000/health; echo
+              docker stop test-container; exit 0
+            fi
+            sleep 2
+          done
+          echo "health endpoint never came up; container logs:"
+          docker logs test-container
           docker stop test-container
+          exit 1

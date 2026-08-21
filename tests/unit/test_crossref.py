@@ -3,7 +3,7 @@ Unit tests for cross-reference service.
 """
 
 import pytest
-from services.crossref import CrossReferenceService, ReferenceData, MatchResult
+from services.crossref import CrossReferenceService, ReferenceData
 from services.extract_cnic import ExtractedField
 
 
