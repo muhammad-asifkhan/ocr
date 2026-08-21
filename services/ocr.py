@@ -3,12 +3,35 @@ OCR service using PaddleOCR with bounding boxes and confidence scores.
 Returns word-level OCR results with spatial information for anchor-based extraction.
 """
 
+import importlib
 import logging
 
 import numpy as np
-from paddleocr import PaddleOCR
 
-from config import OCRConfig
+# IMPORT ORDER IS LOAD-BEARING - do not move below the paddleocr import.
+#
+# paddlepaddle's libpaddle.so interposes zlib symbols process-wide once it is
+# loaded. Any compiled extension imported AFTER it that routes through zlib
+# then fails with "zlib.error: Error -2 while decompressing data: inconsistent
+# stream state". Verified in CI: importing paddle first breaks scipy; importing
+# scipy (or skimage) first makes the whole paddleocr chain import cleanly.
+# It surfaced as a pyclipper failure on some builds and scipy on others,
+# because it hits whichever extension happens to load after paddle.
+#
+# importlib is used rather than plain imports so the statement below separates
+# the two import blocks and isort cannot reorder paddleocr above this.
+# Best-effort: in environments where these are absent (e.g. unit tests that mock
+# paddleocr) there is nothing to protect, and the paddleocr import below fails
+# loudly on its own if the real dependency chain is genuinely broken.
+for _preload in ("scipy._lib._ccallback", "skimage.morphology"):
+    try:
+        importlib.import_module(_preload)
+    except ImportError:
+        logging.getLogger(__name__).debug("zlib-order preload skipped: %s", _preload)
+
+from paddleocr import PaddleOCR  # noqa: E402  (see import-order note above)
+
+from config import OCRConfig  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
